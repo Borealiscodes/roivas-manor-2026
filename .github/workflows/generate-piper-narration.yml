@@ -16,28 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Piper TTS & Voice Models
+      - name: Install Piper TTS & Download Verified Voice Models
         run: |
-          pip install piper-tts
+          pip install --user piper-tts
           mkdir -p /tmp/voices assets/audio
-          # 1. British Male Investigator (en_GB-alan-medium)
-          curl -sL -o /tmp/voices/en_GB-alan-medium.onnx https://huggingface.co
-          curl -sL -o /tmp/voices/en_GB-alan-medium.onnx.json https://huggingface.co.json
-          # 2. Scottish Female Oracle (en_GB-alba-medium)
-          curl -sL -o /tmp/voices/en_GB-alba-medium.onnx https://huggingface.co
-          curl -sL -o /tmp/voices/en_GB-alba-medium.onnx.json https://huggingface.co.json
+          python3 -m piper.download_voices --download-dir /tmp/voices en_GB-alan-medium en_GB-alba-medium
 
       - name: Synthesize Chapter Narrations & 12 Rune Incantations
         run: |
-          # Narrate Chapters (British Male)
-          echo "October twenty twenty-six. Twenty-four years after Alexandra Roivas sealed the estate, the Foyer grandfather clock strikes thirteen." | \
-            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch1_foyer.wav
-          echo "In the Forbidden Library, a Xel-lotath horror materializes from the Tome of Eternal Darkness, fracturing your perception." | \
-            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch2_library.wav
-          echo "Beneath the manor, the three-dimensional crystal splits along coboundary fault lines. Only Mantorok can bind the manifold." | \
-            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch3_observatory.wav
+          python3 -m piper -m /tmp/voices/en_GB-alan-medium.onnx -f assets/audio/ch1_foyer.wav -- \
+            "October twenty twenty-six. Twenty-four years after Alexandra Roivas sealed the estate, the Foyer grandfather clock strikes thirteen."
+          python3 -m piper -m /tmp/voices/en_GB-alan-medium.onnx -f assets/audio/ch2_library.wav -- \
+            "In the Forbidden Library, a Xel-lotath horror materializes from the Tome of Eternal Darkness, fracturing your perception."
+          python3 -m piper -m /tmp/voices/en_GB-alan-medium.onnx -f assets/audio/ch3_observatory.wav -- \
+            "Beneath the manor, the three-dimensional crystal splits along coboundary fault lines. Only Mantorok can bind the manifold."
 
-          # Chant 12 Runes (Scottish Female Oracle)
           declare -A RUNES=(
             ["CHATTURGHA"]="Chattur'gha..."
             ["ULYAOTH"]="Ulyaoth..."
@@ -53,7 +46,7 @@ jobs:
             ["PARGON"]="Pargon..."
           )
           for key in "${!RUNES[@]}"; do
-            echo "${RUNES[$key]}" | piper --model /tmp/voices/en_GB-alba-medium.onnx --length_scale 1.25 --output_file "assets/audio/rune_${key}.wav"
+            python3 -m piper -m /tmp/voices/en_GB-alba-medium.onnx --length-scale 1.25 -f "assets/audio/rune_${key}.wav" -- "${RUNES[$key]}"
           done
 
       - name: Commit Rendered WAV Assets
