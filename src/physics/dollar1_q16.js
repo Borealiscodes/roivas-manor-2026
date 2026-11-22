@@ -52,6 +52,27 @@ function normalizePathQ16(pts) {
   }));
 }
 
+/** Count sharp vertices along normalized path to separate smooth Enso loops from Diamonds/Polygons */
+function countSharpCorners(normPts) {
+  let corners = 0;
+  let cooldown = 0;
+  for (let i = 2; i < normPts.length; i++) {
+    if (cooldown > 0) { cooldown--; continue; }
+    const a = normPts.at(i - 2), b = normPts.at(i - 1), c = normPts.at(i);
+    const v1x = b.x - a.x, v1y = b.y - a.y;
+    const v2x = c.x - b.x, v2y = c.y - b.y;
+    const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+    if (m1 > 1000 && m2 > 1000) {
+      const cosTheta = (v1x * v2x + v1y * v2y) / (m1 * m2);
+      if (cosTheta < 0.45) {
+        corners++;
+        cooldown = 2;
+      }
+    }
+  }
+  return corners;
+}
+
 function buildCanonicalTemplates() {
   const raw = {
     CHATTURGHA: Array.of({x:0,y:0}, {x:50,y:100}, {x:100,y:0}),
@@ -97,6 +118,7 @@ export class Dollar1Q16Recognizer {
     const resampled = resamplePoints(rawPts, SAMPLE_N);
     if (!resampled) return null;
     const candidate = normalizePathQ16(resampled);
+    const corners = countSharpCorners(candidate);
 
     let bestRune = null;
     let bestDist = 0x7fffffff;
@@ -108,7 +130,15 @@ export class Dollar1Q16Recognizer {
         const dy = (candidate.at(i).y - tmpl.at(i).y) >> 4;
         sumDist += q16Sqrt((dx * dx + dy * dy) << 8);
       }
-      const avgDist = (sumDist / SAMPLE_N) | 0;
+      let avgDist = (sumDist / SAMPLE_N) | 0;
+
+      // Penalize PARGON (smooth Enso circle) when stroke has >= 2 sharp corners (Diamond/Triangle/Box)
+      if (runeId === 'PARGON' && corners >= 2) avgDist += 14000;
+      // Reward ULYAOTH / REDGORMOR / MAGORMOR when sharp polygon corners are detected
+      if ((runeId === 'ULYAOTH' || runeId === 'REDGORMOR' || runeId === 'MAGORMOR') && corners >= 2) {
+        avgDist = Math.max(0, avgDist - 4500);
+      }
+
       if (avgDist < bestDist) {
         bestDist = avgDist;
         bestRune = runeId;

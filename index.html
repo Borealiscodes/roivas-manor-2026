@@ -55,6 +55,7 @@
       <option value="ARETAK">Aretak (Trident)</option>
       <option value="PARGON">Pargon (Circle 1.5x)</option>
     </select>
+    <button id="narrate-btn">🎙️ Narrate</button>
     <button id="cast-btn">🕯️ Chant Ritual</button>
     <button id="hint-btn">📜 Auto-Inscribe</button>
     <button id="audio-btn">🔊 Audio</button>
@@ -79,6 +80,7 @@
     import { renderManorActors } from './src/render/manor_sprites.js';
     import { SanityHallucinator } from './src/render/sanity_glitches.js';
     import { CosmologySoundscape } from './src/audio/formant_whisper.js';
+    import { DualVoiceNarrator } from './src/audio/dual_narrator.js';
     import { ROIVAS_CHAPTERS, checkChapterVictory } from './src/story/roivas_chapters.js';
 
     const canvas = document.getElementById('screen');
@@ -102,6 +104,7 @@
     const crystal = new FloatingCrystal3D();
     const hallucinator = new SanityHallucinator();
     const soundscape = new CosmologySoundscape(22050);
+    const narrator = new DualVoiceNarrator();
 
     function loadChapter(idx) {
       if (ritualTimer) { clearInterval(ritualTimer); ritualTimer = null; }
@@ -135,7 +138,7 @@
     }
     document.getElementById('audio-btn').addEventListener('click', unlockAudio);
 
-    function speakRune(word, sanityQ16) {
+    function speakRune(word, sanityQ16) { narrator.chantRune(word, sanityQ16, circle.sheaf.dirichletEnergyQ16); return;
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(word.toLowerCase());
@@ -183,6 +186,7 @@
     document.getElementById('chapter-select').addEventListener('change', (e) => loadChapter(Number(e.target.value)));
     document.getElementById('reset-btn').addEventListener('click', () => loadChapter(chIdx));
     document.getElementById('cast-btn').addEventListener('click', castRitualSequentially);
+    document.getElementById('narrate-btn').addEventListener('click', () => { unlockAudio(); narrator.narrateStory(ROIVAS_CHAPTERS.at(chIdx).narrative); });
     document.getElementById('hint-btn').addEventListener('click', () => {
       const ch = ROIVAS_CHAPTERS.at(chIdx);
       loadChapter(chIdx);
