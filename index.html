@@ -133,7 +133,7 @@
         const pcm = soundscape.renderBlock(out.length, circle.sheaf.sanityQ16);
         for (let i = 0; i < out.length; i++) out[i] = pcm[i] / 32768;
       };
-      node.connect(audioCtx.destination);
+      node.connect(audioCtx.destination); narrator.attachAudioContext(audioCtx);
       document.getElementById('audio-btn').textContent = '🔊 Active';
     }
     document.getElementById('audio-btn').addEventListener('click', unlockAudio);
@@ -186,7 +186,7 @@
     document.getElementById('chapter-select').addEventListener('change', (e) => loadChapter(Number(e.target.value)));
     document.getElementById('reset-btn').addEventListener('click', () => loadChapter(chIdx));
     document.getElementById('cast-btn').addEventListener('click', castRitualSequentially);
-    document.getElementById('narrate-btn').addEventListener('click', () => { unlockAudio(); narrator.narrateStory(ROIVAS_CHAPTERS.at(chIdx).narrative); });
+    document.getElementById('narrate-btn').addEventListener('click', () => { unlockAudio(); narrator.narrateStory(ROIVAS_CHAPTERS.at(chIdx).narrative, chIdx); });
     document.getElementById('hint-btn').addEventListener('click', () => {
       const ch = ROIVAS_CHAPTERS.at(chIdx);
       loadChapter(chIdx);

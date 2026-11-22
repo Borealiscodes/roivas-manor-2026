@@ -1,0 +1,65 @@
+name: Generate Piper Neural Voice Packs (en-GB & Scottish)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/story/roivas_chapters.js'
+      - '.github/workflows/generate-piper-narration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize-voices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Piper TTS & Voice Models
+        run: |
+          pip install piper-tts
+          mkdir -p /tmp/voices assets/audio
+          # 1. British Male Investigator (en_GB-alan-medium)
+          curl -sL -o /tmp/voices/en_GB-alan-medium.onnx https://huggingface.co
+          curl -sL -o /tmp/voices/en_GB-alan-medium.onnx.json https://huggingface.co.json
+          # 2. Scottish Female Oracle (en_GB-alba-medium)
+          curl -sL -o /tmp/voices/en_GB-alba-medium.onnx https://huggingface.co
+          curl -sL -o /tmp/voices/en_GB-alba-medium.onnx.json https://huggingface.co.json
+
+      - name: Synthesize Chapter Narrations & 12 Rune Incantations
+        run: |
+          # Narrate Chapters (British Male)
+          echo "October twenty twenty-six. Twenty-four years after Alexandra Roivas sealed the estate, the Foyer grandfather clock strikes thirteen." | \
+            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch1_foyer.wav
+          echo "In the Forbidden Library, a Xel-lotath horror materializes from the Tome of Eternal Darkness, fracturing your perception." | \
+            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch2_library.wav
+          echo "Beneath the manor, the three-dimensional crystal splits along coboundary fault lines. Only Mantorok can bind the manifold." | \
+            piper --model /tmp/voices/en_GB-alan-medium.onnx --output_file assets/audio/ch3_observatory.wav
+
+          # Chant 12 Runes (Scottish Female Oracle)
+          declare -A RUNES=(
+            ["CHATTURGHA"]="Chattur'gha..."
+            ["ULYAOTH"]="Ulyaoth..."
+            ["XELLOTATH"]="Xel'lotath..."
+            ["MANTOROK"]="Mantorok..."
+            ["ANTORBOK"]="Antorbok..."
+            ["BANKOROK"]="Bankorok..."
+            ["TIER"]="Tier..."
+            ["NAROKATH"]="Narokath..."
+            ["REDGORMOR"]="Redgormor..."
+            ["MAGORMOR"]="Magormor..."
+            ["ARETAK"]="Aretak..."
+            ["PARGON"]="Pargon..."
+          )
+          for key in "${!RUNES[@]}"; do
+            echo "${RUNES[$key]}" | piper --model /tmp/voices/en_GB-alba-medium.onnx --length_scale 1.25 --output_file "assets/audio/rune_${key}.wav"
+          done
+
+      - name: Commit Rendered WAV Assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@://github.com"
+          git add assets/audio/*.wav
+          git diff --staged --quiet || git commit -m "chore(audio): render Piper en-GB male and Scottish female WAV packs via CI"
+          git push
