@@ -1,0 +1,9 @@
+{
+  "name": "roivas-manor-2026",
+  "version": "0.2.0-dev",
+  "type": "module",
+  "description": "Roivas Manor 2026: Q16.16 cellular sheaf cosmology, 12-rune $1 unistroke spellcasting, and 3D crystal retro engine",
+  "scripts": {
+    "test": "node tests/engine_suite_test.js"
+  }
+}
